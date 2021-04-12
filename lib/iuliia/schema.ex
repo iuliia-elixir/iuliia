@@ -37,8 +37,7 @@ defmodule Iuliia.Schema do
   @spec available_schemas() :: list(map())
   def available_schemas do
     for schema_path <- Path.wildcard("lib/schemas/*.json") do
-      schema = schema_path |> File.read!() |> Jason.decode!()
-      schema["name"]
+      schema_path |> File.read!() |> Jason.decode!() |> Map.fetch!("name")
     end
   end
 end

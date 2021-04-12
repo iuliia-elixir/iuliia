@@ -22,42 +22,31 @@ defmodule Iuliia.Engine do
   end
 
   defp translit_chunk(schema, chunk) do
-    if String.match?(chunk, ~r/\p{L}+/u) do
-      {stem, ending} = split_word(chunk)
-
-      if ending == "" do
-        translit_stem(schema, chunk)
-      else
-        translited_ending = schema["ending_mapping"][ending]
-
-        if translited_ending == nil do
-          translit_stem(schema, chunk)
-        else
-          [translit_stem(schema, stem), translited_ending] |> Enum.join()
-        end
-      end
-    else
-      chunk
-    end
+    if String.match?(chunk, ~r/\p{L}+/u),
+      do: translit_chunk(schema, chunk, split_word(chunk, String.length(chunk))),
+      else: chunk
   end
 
-  defp split_word(word) do
-    if String.length(word) <= @ending_length do
-      {word, ""}
-    else
-      ending =
-        if String.length(word) > @ending_length,
-          do: String.slice(word, -@ending_length..-1),
-          else: ""
+  defp translit_chunk(schema, chunk, {_, ""}), do: translit_stem(schema, chunk)
 
-      stem =
-        case String.slice(word, 0..(String.length(word) - @ending_length - 1)) do
-          "" -> word
-          string -> string
-        end
+  defp translit_chunk(schema, chunk, {stem, ending}),
+    do: translit_chunk(schema, chunk, {stem, ending}, schema["ending_mapping"][ending])
 
-      {stem, ending}
-    end
+  defp translit_chunk(schema, chunk, _, nil), do: translit_stem(schema, chunk)
+
+  defp translit_chunk(schema, _, {stem, _}, translited_ending),
+    do: [translit_stem(schema, stem), translited_ending] |> Enum.join()
+
+  defp split_word(word, len) when len <= @ending_length, do: {word, ""}
+
+  defp split_word(word, len) do
+    stem =
+      case String.slice(word, 0..(len - @ending_length - 1)) do
+        "" -> word
+        string -> string
+      end
+
+    {stem, String.slice(word, -@ending_length..-1)}
   end
 
   defp translit_stem(schema, stem) do
@@ -70,32 +59,28 @@ defmodule Iuliia.Engine do
   end
 
   defp translit_char(schema, chars, char, index) do
-    translited_char = translit_prev(schema, chars, index)
-
-    if translited_char == nil do
-      translited_char = translit_next(schema, chars, index)
-
-      if translited_char == nil do
-        translited_char = schema["mapping"][char |> String.downcase()]
-        if upcase?(char), do: translited_char |> String.upcase(), else: translited_char
-      else
-        translited_char
-      end
-    else
-      translited_char
-    end
+    translit_char(schema, chars, char, index, translit_prev(schema, chars, index), :next)
   end
 
-  defp translit_prev(schema, chars, index) when index > 0,
+  defp translit_char(schema, chars, char, index, nil, :next) do
+    translit_char(schema, chars, char, index, translit_next(schema, chars, index), :direct)
+  end
+
+  defp translit_char(schema, _, char, _, nil, :direct),
+    do: schema["mapping"][char |> String.downcase()] |> camelcase(char)
+
+  defp translit_char(_, _, _, _, translited_char, _), do: translited_char
+
+  defp translit_prev(schema, chars, 0),
+    do: chars |> Enum.at(0) |> String.downcase() |> translit_prev(schema)
+
+  defp translit_prev(schema, chars, index),
     do:
       chars
       |> Enum.slice((index - 1)..index)
       |> Enum.join()
       |> String.downcase()
       |> translit_prev(schema)
-
-  defp translit_prev(schema, chars, index),
-    do: chars |> Enum.at(index) |> String.downcase() |> translit_prev(schema)
 
   defp translit_prev(char, schema),
     do: schema["prev_mapping"][char]
@@ -107,7 +92,7 @@ defmodule Iuliia.Engine do
   end
 
   defp camelcase(string, source) do
-    if upcase?(source) do
+    if String.match?(source, ~r/[[:upper:]]/u) do
       downcased_string = String.downcase(string)
       first_sym = downcased_string |> String.at(0) |> String.upcase()
       ending = downcased_string |> String.slice(1..String.length(downcased_string))
@@ -117,6 +102,4 @@ defmodule Iuliia.Engine do
       string
     end
   end
-
-  defp upcase?(string), do: String.match?(string, ~r/[[:upper:]]/u)
 end
