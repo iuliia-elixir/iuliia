@@ -4,8 +4,6 @@ Small elixir lib to properly transliterate cyrillic to latin. Uses https://githu
 
 ## Installation
 
-Not yet available at Hex (stay tuned)
-
 ```elixir
 def deps do
   [
@@ -16,7 +14,7 @@ end
 
 ## Documentation
 
-Will be available at [https://hexdocs.pm/iuliia](https://hexdocs.pm/iuliia) (stay tuned)
+Available at [https://hexdocs.pm/iuliia](https://hexdocs.pm/iuliia)
 
 ## Usage
 
@@ -98,4 +96,4 @@ mix credo
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+The lib is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
