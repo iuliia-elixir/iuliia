@@ -7,7 +7,7 @@ Small elixir lib to properly transliterate cyrillic to latin. Uses https://githu
 ```elixir
 def deps do
   [
-    {:iuliia, "~> 0.1.0"}
+    {:iuliia, "~> 0.1.1"}
   ]
 end
 ```
@@ -56,11 +56,6 @@ Check out repo:
 git clone git@github.com:adnikiforov/iuliia-rb.git
 ```
 
-Check out submodule with schemas:
-```
-git submodule update --init
-```
-
 Setup dependencies:
 ```
 mix deps.get
@@ -78,11 +73,12 @@ Or open console to try it:
 iex -S mix
 ```
 
-Before push please run
+Before PR please run
 
 ```
 mix format
 mix credo
+mix test
 ```
 
 ## Support
