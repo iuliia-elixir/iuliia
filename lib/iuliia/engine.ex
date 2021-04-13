@@ -22,20 +22,20 @@ defmodule Iuliia.Engine do
   end
 
   defp translit_chunk(schema, chunk) do
-    if String.match?(chunk, ~r/\p{L}+/u),
-      do: translit_chunk(schema, chunk, split_word(chunk, String.length(chunk))),
-      else: chunk
+    with true <- String.match?(chunk, ~r/\p{L}+/u),
+         {stem, ending} when ending not in [""] <- split_word(chunk),
+         te when not is_nil(te) <- schema["ending_mapping"][ending] do
+      [translit_stem(schema, stem), te] |> Enum.join()
+    else
+      false ->
+        chunk
+
+      _ ->
+        translit_stem(schema, chunk)
+    end
   end
 
-  defp translit_chunk(schema, chunk, {_, ""}), do: translit_stem(schema, chunk)
-
-  defp translit_chunk(schema, chunk, {stem, ending}),
-    do: translit_chunk(schema, chunk, {stem, ending}, schema["ending_mapping"][ending])
-
-  defp translit_chunk(schema, chunk, _, nil), do: translit_stem(schema, chunk)
-
-  defp translit_chunk(schema, _, {stem, _}, translited_ending),
-    do: [translit_stem(schema, stem), translited_ending] |> Enum.join()
+  defp split_word(word), do: split_word(word, String.length(word))
 
   defp split_word(word, len) when len <= @ending_length, do: {word, ""}
 
@@ -58,18 +58,14 @@ defmodule Iuliia.Engine do
     translited_stem |> Enum.join() |> camelcase(stem)
   end
 
-  defp translit_char(schema, chars, char, index) do
-    translit_char(schema, chars, char, index, translit_prev(schema, chars, index), :next)
+  def translit_char(schema, chars, char, index) do
+    with nil <- translit_prev(schema, chars, index),
+         nil <- translit_next(schema, chars, index) do
+      schema["mapping"][char |> String.downcase()] |> camelcase(char)
+    else
+      translited_char -> translited_char
+    end
   end
-
-  defp translit_char(schema, chars, char, index, nil, :next) do
-    translit_char(schema, chars, char, index, translit_next(schema, chars, index), :direct)
-  end
-
-  defp translit_char(schema, _, char, _, nil, :direct),
-    do: schema["mapping"][char |> String.downcase()] |> camelcase(char)
-
-  defp translit_char(_, _, _, _, translited_char, _), do: translited_char
 
   defp translit_prev(schema, chars, 0),
     do: chars |> Enum.at(0) |> String.downcase() |> translit_prev(schema)

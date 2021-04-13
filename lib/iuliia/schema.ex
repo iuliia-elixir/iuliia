@@ -5,7 +5,7 @@ defmodule Iuliia.Schema do
 
   @doc """
   Lookup for schema by schema name and returns schema data.
-  Raises `ArgumentError` if there is no such schema.
+  Raises `ArgumentError` if there is no such schema or schema can not be parsed.
   ## Example
       iex> Iuliia.Schema.lookup("wikipedia")
 
@@ -17,9 +17,15 @@ defmodule Iuliia.Schema do
   """
   @spec lookup(String.t()) :: map()
   def lookup(schema) do
-    case File.read("lib/schemas/#{schema}.json") do
-      {:ok, body} -> Jason.decode!(body)
-      _ -> raise ArgumentError, "Can not find schema #{schema}}"
+    with {:ok, file} <- File.read("lib/schemas/#{schema}.json"),
+         {:ok, data} <- Jason.decode(file) do
+      data
+    else
+      {:error, :enoent} ->
+        raise ArgumentError, "Can not find schema #{schema}}"
+
+      {:error, error} when is_map(error) ->
+        raise ArgumentError, "Can not parse schema #{schema}: #{error}}"
     end
   end
 
