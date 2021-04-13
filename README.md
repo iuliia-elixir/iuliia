@@ -7,7 +7,7 @@ Small elixir lib to properly transliterate cyrillic to latin. Uses https://githu
 ```elixir
 def deps do
   [
-    {:iuliia, "~> 0.1.2"}
+    {:iuliia, "~> 0.1.3"}
   ]
 end
 ```

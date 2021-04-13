@@ -3,6 +3,8 @@ defmodule Iuliia.Schema do
   Schema provides methods to work with available transliteration schemas.
   """
 
+  @cwd File.cwd!
+
   @doc """
   Lookup for schema by schema name and returns schema data.
   Raises `ArgumentError` if there is no such schema or schema can not be parsed.
@@ -17,7 +19,7 @@ defmodule Iuliia.Schema do
   """
   @spec lookup(String.t()) :: map()
   def lookup(schema) do
-    with {:ok, file} <- File.read("lib/schemas/#{schema}.json"),
+    with {:ok, file} <- File.read("#{@cwd}/lib/schemas/#{schema}.json"),
          {:ok, data} <- Jason.decode(file) do
       data
     else
@@ -42,7 +44,7 @@ defmodule Iuliia.Schema do
   """
   @spec available_schemas() :: list(map())
   def available_schemas do
-    for schema_path <- Path.wildcard("lib/schemas/*.json") do
+    for schema_path <- Path.wildcard("#{@cwd}/lib/schemas/*.json") do
       schema_path |> File.read!() |> Jason.decode!() |> Map.fetch!("name")
     end
   end
