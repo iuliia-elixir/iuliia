@@ -27,3 +27,6 @@ iuliia-*.tar
 .idea
 
 mix.lock
+
+# Nix files
+/.nix-hex/
