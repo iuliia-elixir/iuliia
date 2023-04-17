@@ -45,7 +45,7 @@ Iuliia.Schema.lookup("wikipedia")
 Pick one and transliterate
 
 ```elixir
-Iuliia.translate("Юлия, съешь ещё этих мягких французских булок из Йошкар-Олы, да выпей алтайского чаю", "mvd_782")
+Iuliia.transliterate("Юлия, съешь ещё этих мягких французских булок из Йошкар-Олы, да выпей алтайского чаю", "mvd_782")
 
 "Yuliya, syesh' eshche etikh myagkikh frantsuzskikh bulok iz Yoshkar-Oly, da vypey altayskogo chayu"
 ```

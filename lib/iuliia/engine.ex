@@ -1,37 +1,39 @@
 defmodule Iuliia.Engine do
-  @moduledoc """
-  Engine provides main transliteration logic.
-  """
+  @moduledoc false
+  # Engine provides main transliteration logic.
+
   @ending_length 2
+
+  alias Iuliia.Schema
 
   @doc """
   Transliterates string using chosen schema.
-  ## Example
-      iex> Iuliia.translate("Юлия, съешь ещё этих мягких французских булок из Йошкар-Олы, да выпей алтайского чаю", "mvd_782")
 
+  ## Example
+
+      iex> Iuliia.transliterate("Юлия, съешь ещё этих мягких французских булок из Йошкар-Олы, да выпей алтайского чаю", "mvd_782")
       "Yuliya, syesh' eshche etikh myagkikh frantsuzskikh bulok iz Yoshkar-Oly, da vypey altayskogo chayu"
   """
-  @spec translate(String.t(), String.t()) :: String.t()
-  def translate(string, schema_name) do
-    schema = Iuliia.Schema.lookup(schema_name)
+  @spec transliterate(String.t(), Schema.t(), Keyword.t()) :: String.t()
+  def transliterate(string, %Schema{} = schema, opts) do
+    opts = Map.new(opts)
 
-    translated_chunks =
-      for word <- String.split(string, ~r/\b/u, trim: true), do: translit_chunk(schema, word)
-
-    Enum.join(translated_chunks)
+    string
+    |> String.split(~r/\b/u, trim: true)
+    |> Enum.map_join(&translit_chunk(schema, &1, opts))
   end
 
-  defp translit_chunk(schema, chunk) do
+  defp translit_chunk(schema, chunk, opts) do
     with true <- String.match?(chunk, ~r/\p{L}+/u),
          {stem, ending} when ending not in [""] <- split_word(chunk),
-         te when not is_nil(te) <- schema["ending_mapping"][ending] do
-      [translit_stem(schema, stem), te] |> Enum.join()
+         te when not is_nil(te) <- map(schema, :ending_mapping, ending) do
+      translit_stem(schema, stem, opts) <> te
     else
       false ->
         chunk
 
       _ ->
-        translit_stem(schema, chunk)
+        translit_stem(schema, chunk, opts)
     end
   end
 
@@ -49,53 +51,91 @@ defmodule Iuliia.Engine do
     {stem, String.slice(word, -@ending_length..-1)}
   end
 
-  defp translit_stem(schema, stem) do
-    translited_stem =
-      for {char, index} <- stem |> String.codepoints() |> Enum.with_index() do
-        translit_char(schema, stem |> String.codepoints(), char, index)
-      end
-
-    translited_stem |> Enum.join() |> camelcase(stem)
+  defp translit_stem(schema, stem, opts) do
+    stem
+    |> String.codepoints()
+    |> Enum.with_index()
+    |> Enum.map_join(fn {char, index} ->
+      translit_char(schema, String.codepoints(stem), char, index, opts)
+    end)
+    |> camelcase(stem)
   end
 
-  def translit_char(schema, chars, char, index) do
+  def translit_char(schema, chars, char, index, opts) do
     with nil <- translit_prev(schema, chars, index),
          nil <- translit_next(schema, chars, index) do
-      schema["mapping"][char |> String.downcase()] |> camelcase(char)
+      map(schema, :mapping, String.downcase(char), opts) |> camelcase(char)
     else
       translited_char -> translited_char
     end
   end
 
-  defp translit_prev(schema, chars, 0),
-    do: chars |> Enum.at(0) |> String.downcase() |> translit_prev(schema)
+  defp translit_prev(schema, [char | _], 0) do
+    map(schema, :prev_mapping, String.downcase(char))
+  end
 
-  defp translit_prev(schema, chars, index),
-    do:
+  defp translit_prev(schema, chars, index) do
+    char =
       chars
       |> Enum.slice((index - 1)..index)
       |> Enum.join()
       |> String.downcase()
-      |> translit_prev(schema)
 
-  defp translit_prev(char, schema),
-    do: schema["prev_mapping"][char]
+    map(schema, :prev_mapping, char)
+  end
 
   defp translit_next(schema, chars, index) do
-    next_char = chars |> Enum.slice(index..(index + 1)) |> Enum.join() |> String.downcase()
+    next_char =
+      chars
+      |> Enum.slice(index..(index + 1))
+      |> Enum.join()
+      |> String.downcase()
 
-    schema["next_mapping"][next_char]
+    map(schema, :next_mapping, next_char)
   end
+
+  defp camelcase(nil, _), do: nil
 
   defp camelcase(string, source) do
     if String.match?(source, ~r/[[:upper:]]/u) do
       downcased_string = String.downcase(string)
-      first_sym = downcased_string |> String.at(0) |> String.upcase()
-      ending = downcased_string |> String.slice(1..String.length(downcased_string))
+
+      first_sym =
+        downcased_string
+        |> String.at(0)
+        |> String.upcase()
+
+      ending =
+        downcased_string
+        |> String.slice(1..String.length(downcased_string))
 
       first_sym <> ending
     else
       string
+    end
+  end
+
+  # Helper for mapping characters
+  defp map(schema, mapping_key, char) do
+    case schema do
+      %{^mapping_key => %{^char => replacement}} ->
+        replacement
+
+      _ ->
+        nil
+    end
+  end
+
+  defp map(schema, mapping_key, char, opts) do
+    case {schema, opts} do
+      {%{^mapping_key => %{^char => replacement}}, _} ->
+        replacement
+
+      {_, %{drop_latin: true}} ->
+        nil
+
+      {_, _} ->
+        char
     end
   end
 end

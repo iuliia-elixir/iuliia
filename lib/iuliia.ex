@@ -1,23 +1,47 @@
 defmodule Iuliia do
   @moduledoc """
-  Main module.
+  Public module for translating strings
+
+  ## Using
+
+  Just use `transliterate/3`. If you don't know the schema, you can use
+
+  ## Configuring
+
+  Configuring this project.
+
+  ```elixir
+  config :iuliia, :schemas, [
+    "one",                         # Will be loaded from priv/schemas/one.json
+    {"two", "/path/to/file.json"}  # Will be loaded from path/to/file.json
+  ]
+  ```
+
+  Project will reload all schemas on any config change
   """
 
-  @doc false
-  @spec translate(any()) :: nil
-  def translate(_), do: raise(ArgumentError, message: "Schema required")
+  alias Iuliia.Engine
+  alias Iuliia.Schema
+
+  @typedoc """
+  * `:load` -- to load schema in runtime
+  * `:drop_latin` (default: false) -- to drop latin characters during transliteration
+  """
+  @type option ::
+          {:load, Schema.t() | Path.t() | true}
+          | {:drop_latin, boolean()}
 
   @doc """
   Transliterates string using chosen schema.
+
   ## Example
-      iex> Iuliia.translate("Юлия, съешь ещё этих мягких французских булок из Йошкар-Олы, да выпей алтайского чаю", "mvd_782")
 
-      "Yuliya, syesh' eshche etikh myagkikh frantsuzskikh bulok iz Yoshkar-Oly, da vypey altayskogo chayu"
+      iex> Iuliia.transliterate("Юлия, съешь ещё этих мягких французских булок из Йошкар-Олы, да выпей алтайского чаю", "wikipedia")
+      "Yuliya, syesh yeshchyo etikh myagkikh frantsuzskikh bulok iz Yoshkar-Oly, da vypey altayskogo chayu"
   """
-  @spec translate(String.t(), String.t()) :: String.t()
-  def translate(string, schema_name) when is_binary(string) do
-    Iuliia.Engine.translate(string, schema_name)
+  @spec transliterate(String.t(), String.t(), [option()]) :: String.t()
+  def transliterate(string, schema_name, opts \\ []) when is_binary(string) do
+    schema = Schema.lookup(schema_name, opts)
+    Engine.transliterate(string, schema, opts)
   end
-
-  def translate(non_string, _), do: non_string
 end

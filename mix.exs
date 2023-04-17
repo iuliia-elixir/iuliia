@@ -1,6 +1,8 @@
 defmodule Iuliia.MixProject do
   use Mix.Project
 
+  @gh "https://github.com/iuliia-elixir/iuliia"
+
   def project do
     [
       app: :iuliia,
@@ -9,7 +11,7 @@ defmodule Iuliia.MixProject do
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      source_url: "https://github.com/adnikiforov/iuliia-ex",
+      source_url: @gh,
       package: package()
     ]
   end
@@ -18,21 +20,20 @@ defmodule Iuliia.MixProject do
     [
       name: "iuliia",
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/adnikiforov/iuliia-ex"},
+      links: %{"Github" => @gh},
       files: ~w(lib .formatter.exs mix.exs README* LICENSE* CHANGELOG*)
     ]
   end
 
   def application do
     [
-      extra_applications: [:logger]
+      mod: {Iuliia.Application, []}
     ]
   end
 
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.24", only: :dev, runtime: false}
     ]
   end
